@@ -7,8 +7,8 @@ use App\Models\Transactions;
 
 class TransactionsController
 {
-    public function show() {
-        return Transactions::all();
+    public function show(Request $request) {
+        return $request->user()->transactions;
     }
 
     public function store(Request $request) {
@@ -20,7 +20,7 @@ class TransactionsController
             'date' => 'required|date',
         ]);
 
-        $transaction = Transactions::create($validated);
+        $transaction = $request->user()->transactions()->create($validated);
 
         return response()->json([
             'message' => 'success!',
@@ -28,8 +28,14 @@ class TransactionsController
         ], 201);
     }
 
-    public function destroy($id) {
+    public function destroy(Request $request, $id) {
         $transaction = Transactions::find($id);
+
+         if($transaction->user_id !== $request->user()->id) {
+            return response()->json([
+                'message' => 'forbiden access'
+            ], 403);
+        }
 
         if(!$transaction) {
             return response()->json([
@@ -49,13 +55,19 @@ class TransactionsController
 
         $transaction = Transactions::find($id);
 
+        if($transaction->user_id !== $request->user()->id) {
+            return response()->json([
+                'message' => 'forbiden access'
+            ], 403);
+        }
+
         if(!$transaction) {
             return response()->json([
                 'message' => 'Transaction not found'
             ], 404);
         }
 
-        $transaction->update($request->all());
+        $transaction->update($request->only(['title', 'type', 'amount', 'date']));
 
         return response()->json([
             'message' => 'Transaction updated successfully',
@@ -63,7 +75,7 @@ class TransactionsController
         ]);
     }
 
-    public function transaction($id) {
+    public function transaction(Request $request, $id) {
 
         $transaction = Transactions::find($id);
 
@@ -73,8 +85,13 @@ class TransactionsController
             ],404);
         }
 
-        return response()->json([
-            'transaction' => $transaction
-        ]);
+         if($transaction->user_id !== $request->user()->id) {
+            return response()->json([
+                'message' => 'forbiden access'
+            ], 403);
+        }
+
+
+        return response()->json($transaction, 200);
     }
 }
